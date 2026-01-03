@@ -1,4 +1,4 @@
-package com.example.chat;
+package com.example.youtubeproxy;
 
 import java.io.*;
 import java.net.Socket;
@@ -28,17 +28,17 @@ public class ChatClient {
         writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
 
         // Протокол: сначала ключ
-        readLine(); // "Enter key:"
+        reader.readLine(); // "Enter key:"
         sendLine(key);
 
-        String response = readLine();
+        String response = reader.readLine();
         if (!response.contains("Key accepted")) {
             throw new IOException("Invalid key: " + response);
         }
 
         // Потом никнейм
         sendLine(username);
-        readLine(); // "Connected to chat..."
+        reader.readLine(); // "Connected to chat..."
     }
 
     // Отправка строки с переносом
