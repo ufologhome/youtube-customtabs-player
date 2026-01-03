@@ -4,24 +4,51 @@ import java.io.*;
 import java.net.Socket;
 
 public class ChatClient {
+    private Socket socket;
+    private BufferedReader in;
+    private BufferedWriter out;
 
-    Socket socket;
-    BufferedReader in;
-    PrintWriter out;
-
-    public ChatClient(String host, int port) throws IOException {
-        socket = new Socket(host, port);
+    public ChatClient(String host, String key, String username) throws IOException {
+        socket = new Socket(host, 9009);
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        out = new PrintWriter(new BufferedWriter(
-                new OutputStreamWriter(socket.getOutputStream())
-        ), true);
+        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+        // Отправляем ключ
+        out.write(key);
+        out.newLine();
+        out.flush();
+
+        // Отправляем никнейм
+        out.write(username);
+        out.newLine();
+        out.flush();
     }
 
-    public void send(String msg) {
-        out.println(msg);
+    // Отправка сообщений
+    public void send(String message) {
+        try {
+            out.write(message);
+            out.newLine();
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public String read() throws IOException {
-        return in.readLine();
+    // Чтение сообщений
+    public String read() {
+        try {
+            return in.readLine();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    public void close() {
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
