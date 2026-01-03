@@ -1,29 +1,31 @@
-package com.example.youtubeplayer;
+package com.example.youtuberelay;
 
-import android.net.Uri;
 import android.os.Bundle;
-import android.widget.Button;
-
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.browser.customtabs.CustomTabsIntent;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String VIDEO_ID = "3JIPDZqkeSo";
+    private static final String RELAY_IP = "192.168.0.150"; // IP твоего ПК с Python relay
+    private static final int RELAY_PORT = 8881;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button open = findViewById(R.id.open);
+        WebView webView = findViewById(R.id.webview);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
 
-        open.setOnClickListener(v -> {
-            String url = "https://m.youtube.com/watch?v=dQw4w9WgXcQ";
+        webView.setWebViewClient(new WebViewClient());
 
-            CustomTabsIntent intent = new CustomTabsIntent.Builder()
-                    .setShowTitle(true)
-                    .build();
-
-            intent.launchUrl(this, Uri.parse(url));
-        });
+        String url = "http://" + RELAY_IP + ":" + RELAY_PORT + "/https://www.youtube.com/embed/" + VIDEO_ID + "?autoplay=1&playsinline=1";
+        webView.loadUrl(url);
     }
 }
