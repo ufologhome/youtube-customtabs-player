@@ -3,19 +3,15 @@ plugins {
 }
 
 android {
-    namespace 'com.example.youtuberelay'
+    namespace "com.example.chat"
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.youtuberelay"
+        applicationId "com.example.chat"
         minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"
-    }
-
-    buildTypes {
-        release { minifyEnabled false }
     }
 }
 
