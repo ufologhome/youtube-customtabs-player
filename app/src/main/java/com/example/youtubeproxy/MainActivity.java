@@ -15,10 +15,10 @@ public class MainActivity extends AppCompatActivity {
     ChatClient client;
     volatile boolean connected = false;
 
-    String username = "Julyet"; // Ваш никнейм
-    String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // Ключ для сервера
-    String serverIp = "192.168.0.150"; // IP сервера
-    int serverPort = 9009; // Порт сервера
+    String username = "Julyet"; 
+    String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash";
+    String serverIp = "192.168.0.150"; 
+    int serverPort = 9009;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -32,10 +32,9 @@ public class MainActivity extends AppCompatActivity {
 
         send.setEnabled(false);
 
-        // Подключение к серверу
+        // Подключение в отдельном потоке
         new Thread(() -> {
             try {
-                Log.d("CHAT", "Connecting...");
                 client = new ChatClient(serverIp, serverPort, serverKey, username);
                 connected = true;
 
@@ -46,15 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
                 String msg;
                 while ((msg = client.read()) != null) {
-                    String[] parts = msg.split(":", 2);
-                    String sender = parts.length > 1 ? parts[0] : "Friend";
-                    String text = parts.length > 1 ? parts[1] : msg;
-
-                    String finalSender = sender;
-                    String finalText = text;
-                    runOnUiThread(() ->
-                        appendChat(finalSender + ": " + finalText)
-                    );
+                    runOnUiThread(() -> appendChat(msg));
                 }
 
             } catch (Exception e) {
@@ -70,19 +61,20 @@ public class MainActivity extends AppCompatActivity {
             String text = input.getText().toString().trim();
             if (text.isEmpty()) return;
 
-            try {
-                client.send(username + ":" + text);
-                appendChat(username + ": " + text);
-            } catch (Exception e) {
-                appendChat("❌ Failed to send message: " + e.getMessage());
-                e.printStackTrace();
-            }
+            new Thread(() -> {
+                try {
+                    client.send(username + ":" + text);
+                    runOnUiThread(() -> appendChat(username + ": " + text));
+                } catch (Exception e) {
+                    runOnUiThread(() -> appendChat("❌ Failed to send message: " + e.getMessage()));
+                    e.printStackTrace();
+                }
+            }).start();
 
             input.setText("");
         });
     }
 
-    // Добавление текста в chat с прокруткой вниз
     void appendChat(String text) {
         chat.append(text + "\n");
         scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
