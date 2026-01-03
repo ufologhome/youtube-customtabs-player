@@ -1,92 +1,47 @@
 package com.example.youtubeproxy;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.Socket;
 
 public class ChatClient {
 
-    public interface Listener {
-        void onMessage(String msg);
-        void onError(String err);
-    }
-
     private Socket socket;
-    private BufferedReader reader;
-    private BufferedWriter writer;
-    private Listener listener;
+    private BufferedInputStream in;
+    private BufferedOutputStream out;
 
-    public ChatClient(
-            String host,
-            int port,
-            String key,
-            String username,
-            Listener listener
-    ) {
-        this.listener = listener;
+    public ChatClient(String ip, int port, String key, String username) throws Exception {
+        socket = new Socket(ip, port);
+        in = new BufferedInputStream(socket.getInputStream());
+        out = new BufferedOutputStream(socket.getOutputStream());
 
-        new Thread(() -> {
-            try {
-                socket = new Socket(host, port);
+        read();              // KEY:
+        sendRaw(key);
 
-                reader = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream())
-                );
-                writer = new BufferedWriter(
-                        new OutputStreamWriter(socket.getOutputStream())
-                );
+        read();              // USERNAME:
+        sendRaw(username);
 
-                // "Enter key:"
-                reader.readLine();
-                sendRaw(key);
-
-                String resp = reader.readLine();
-                if (resp == null || resp.contains("Invalid")) {
-                    listener.onError("Invalid key");
-                    close();
-                    return;
-                }
-
-                // "Send username:"
-                reader.readLine();
-                sendRaw(username);
-
-                // "Connected"
-                reader.readLine();
-
-                while (true) {
-                    String line = reader.readLine();
-                    if (line == null) break;
-                    listener.onMessage(line);
-                }
-
-            } catch (Exception e) {
-                listener.onError(e.toString());
-            } finally {
-                close();
-            }
-        }).start();
+        String ok = read();  // OK
+        if (!ok.equals("OK"))
+            throw new Exception("Server отказал: " + ok);
     }
 
-    public void send(String msg) {
-        new Thread(() -> {
-            try {
-                sendRaw(msg);
-            } catch (Exception ignored) {}
-        }).start();
+    public void send(String msg) throws Exception {
+        sendRaw(msg);
+    }
+
+    public String read() throws Exception {
+        byte[] buf = new byte[4096];
+        int len = in.read(buf);
+        if (len == -1) return null;
+        return new String(buf, 0, len, "UTF-8").trim();
     }
 
     private void sendRaw(String s) throws Exception {
-        writer.write(s);
-        writer.write("\n");
-        writer.flush();
+        out.write((s + "\n").getBytes("UTF-8"));
+        out.flush();
     }
 
     public void close() {
-        try {
-            if (socket != null) socket.close();
-        } catch (Exception ignored) {}
+        try { socket.close(); } catch (Exception ignored) {}
     }
 }
