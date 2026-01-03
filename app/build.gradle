@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace "com.example.chat"
+    namespace "com.example.youtubeproxy"
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.chat"
+        applicationId "com.example.youtubeproxy"
         minSdk 24
         targetSdk 34
         versionCode 1
