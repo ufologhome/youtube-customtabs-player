@@ -15,7 +15,7 @@ public class MainActivity extends AppCompatActivity {
     ChatClient client;
     volatile boolean connected = false;
 
-    String username = "UFO"; // Никнейм своего пользователя
+    String username = "Julyet"; // Никнейм своего пользователя
     String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // Простой ключ для подключения
 
     @Override
