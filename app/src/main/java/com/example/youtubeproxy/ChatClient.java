@@ -4,51 +4,36 @@ import java.io.*;
 import java.net.Socket;
 
 public class ChatClient {
+
     private Socket socket;
-    private BufferedReader in;
-    private BufferedWriter out;
+    private BufferedReader reader;
+    private BufferedWriter writer;
 
-    public ChatClient(String host, String key, String username) throws IOException {
-        socket = new Socket(host, 9009);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+    public ChatClient(String host, int port, String serverKey, String username) throws IOException {
+        socket = new Socket(host, port);
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-        // Отправляем ключ
-        out.write(key);
-        out.newLine();
-        out.flush();
-
-        // Отправляем никнейм
-        out.write(username);
-        out.newLine();
-        out.flush();
+        // Отправка ключа при подключении
+        writer.write("KEY:" + serverKey + "\n");
+        writer.flush();
     }
 
-    // Отправка сообщений
-    public void send(String message) {
-        try {
-            out.write(message);
-            out.newLine();
-            out.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void send(String message) throws IOException {
+        if (socket == null || socket.isClosed())
+            throw new IOException("Socket is closed");
+
+        writer.write(message + "\n");
+        writer.flush();
     }
 
-    // Чтение сообщений
-    public String read() {
-        try {
-            return in.readLine();
-        } catch (IOException e) {
-            return null;
-        }
+    public String read() throws IOException {
+        return reader.readLine();
     }
 
     public void close() {
-        try {
-            socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        try { if (reader != null) reader.close(); } catch (IOException ignored) {}
+        try { if (writer != null) writer.close(); } catch (IOException ignored) {}
+        try { if (socket != null) socket.close(); } catch (IOException ignored) {}
     }
 }
