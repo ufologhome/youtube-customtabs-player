@@ -1,47 +1,37 @@
-package com.example.youtubeproxy;
+package com.example.chat;
 
 import java.io.*;
 import java.net.Socket;
 
 public class ChatClient {
+
     private Socket socket;
     private BufferedReader reader;
     private BufferedWriter writer;
 
-    private String serverIp;
-    private int serverPort;
-    private String key;
-    private String username;
+    public ChatClient(String host, int port, String key, String username) throws IOException {
+        socket = new Socket(host, port);
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-    public ChatClient(String serverIp, int serverPort, String key, String username) throws IOException {
-        this.serverIp = serverIp;
-        this.serverPort = serverPort;
-        this.key = key;
-        this.username = username;
-
-        connect();
-    }
-
-    private void connect() throws IOException {
-        socket = new Socket(serverIp, serverPort);
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-
-        // Протокол: сначала ключ
-        reader.readLine(); // "Enter key:"
+        // Отправляем ключ
         sendLine(key);
 
-        String response = reader.readLine();
-        if (!response.contains("Key accepted")) {
-            throw new IOException("Invalid key: " + response);
+        String keyResponse = readLine();
+        if (!keyResponse.contains("Key accepted")) {
+            throw new IOException("Invalid server key: " + keyResponse);
         }
 
-        // Потом никнейм
+        // Отправляем ник
         sendLine(username);
-        reader.readLine(); // "Connected to chat..."
+
+        String connectedMsg = readLine();
+        if (!connectedMsg.contains("Connected")) {
+            throw new IOException("Failed to connect: " + connectedMsg);
+        }
     }
 
-    // Отправка строки с переносом
+    // Отправка строки на сервер
     public void send(String msg) throws IOException {
         sendLine(msg);
     }
@@ -51,13 +41,16 @@ public class ChatClient {
         writer.flush();
     }
 
-    // Чтение строки с сервера
+    // Чтение строки от сервера
     public String read() throws IOException {
+        return readLine();
+    }
+
+    private String readLine() throws IOException {
         return reader.readLine();
     }
 
-    // Закрыть соединение
     public void close() throws IOException {
-        socket.close();
+        if (socket != null) socket.close();
     }
 }
