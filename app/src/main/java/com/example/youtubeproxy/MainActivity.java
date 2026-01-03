@@ -13,10 +13,10 @@ public class MainActivity extends AppCompatActivity {
 
     ChatClient client;
 
+    String username = "UFO";      // ← НА ВТОРОМ ТЕЛЕФОНЕ Julyet
     String serverIp = "192.168.0.150";
     int serverPort = 9009;
     String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash";
-    String username = "UFO";
 
     @Override
     protected void onCreate(Bundle b) {
@@ -30,43 +30,47 @@ public class MainActivity extends AppCompatActivity {
 
         send.setEnabled(false);
 
-        client = new ChatClient(
-                serverIp,
-                serverPort,
-                serverKey,
-                username,
-                new ChatClient.Listener() {
-                    @Override
-                    public void onMessage(String msg) {
-                        runOnUiThread(() -> append(msg));
-                    }
+        // ===== CONNECT =====
+        new Thread(() -> {
+            try {
+                client = new ChatClient(serverIp, serverPort, serverKey, username);
 
-                    @Override
-                    public void onError(String err) {
-                        runOnUiThread(() -> append("❌ " + err));
-                    }
+                runOnUiThread(() -> {
+                    append("✅ Connected as " + username);
+                    send.setEnabled(true);
+                });
+
+                // ===== READ LOOP =====
+                String msg;
+                while ((msg = client.read()) != null) {
+                    String finalMsg = msg;
+                    runOnUiThread(() -> append(finalMsg));
                 }
-        );
 
+            } catch (Exception e) {
+                runOnUiThread(() ->
+                    append("❌ Connection error: " + e.getMessage())
+                );
+            }
+        }).start();
+
+        // ===== SEND =====
         send.setOnClickListener(v -> {
             String text = input.getText().toString().trim();
             if (text.isEmpty()) return;
 
-            client.send(text);
-            input.setText("");
+            try {
+                client.send(text);
+                append(username + ": " + text);
+                input.setText("");
+            } catch (Exception e) {
+                append("❌ Send failed");
+            }
         });
-
-        send.setEnabled(true);
     }
 
     void append(String s) {
         chat.append(s + "\n");
         scroll.post(() -> scroll.fullScroll(ScrollView.FOCUS_DOWN));
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (client != null) client.close();
     }
 }
