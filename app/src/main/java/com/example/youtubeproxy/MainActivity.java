@@ -13,7 +13,7 @@ public class MainActivity extends AppCompatActivity {
 
     ChatClient client;
 
-    String username = "UFO";      // ← НА ВТОРОМ ТЕЛЕФОНЕ Julyet
+    String username = "Julyet";      // ← НА ВТОРОМ ТЕЛЕФОНЕ Julyet
     String serverIp = "192.168.0.150";
     int serverPort = 9009;
     String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash";
