@@ -1,4 +1,4 @@
-package com.example.chat;
+package com.example.youtubeproxy;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -8,25 +8,29 @@ import java.net.Socket;
 
 public class ChatClient {
 
-    private Socket socket;
-    private BufferedReader reader;
-    private BufferedWriter writer;
-
-    public interface MessageListener {
+    public interface Listener {
         void onMessage(String msg);
         void onError(String err);
     }
+
+    private Socket socket;
+    private BufferedReader reader;
+    private BufferedWriter writer;
+    private Listener listener;
 
     public ChatClient(
             String host,
             int port,
             String key,
             String username,
-            MessageListener listener
+            Listener listener
     ) {
+        this.listener = listener;
+
         new Thread(() -> {
             try {
                 socket = new Socket(host, port);
+
                 reader = new BufferedReader(
                         new InputStreamReader(socket.getInputStream())
                 );
@@ -34,30 +38,24 @@ public class ChatClient {
                         new OutputStreamWriter(socket.getOutputStream())
                 );
 
-                // ---- SERVER: "Enter key:"
+                // "Enter key:"
                 reader.readLine();
+                sendRaw(key);
 
-                // SEND KEY
-                sendLine(key);
-
-                // ---- SERVER RESPONSE
-                String response = reader.readLine();
-                if (response == null || response.contains("Invalid")) {
+                String resp = reader.readLine();
+                if (resp == null || resp.contains("Invalid")) {
                     listener.onError("Invalid key");
                     close();
                     return;
                 }
 
-                // ---- SERVER: "Send your username:"
+                // "Send username:"
+                reader.readLine();
+                sendRaw(username);
+
+                // "Connected"
                 reader.readLine();
 
-                // SEND USERNAME
-                sendLine(username);
-
-                // ---- SERVER: "Connected to chat"
-                reader.readLine();
-
-                // READ CHAT
                 while (true) {
                     String line = reader.readLine();
                     if (line == null) break;
@@ -72,21 +70,21 @@ public class ChatClient {
         }).start();
     }
 
-    public void sendMessage(String msg) {
+    public void send(String msg) {
         new Thread(() -> {
             try {
-                sendLine(msg);
+                sendRaw(msg);
             } catch (Exception ignored) {}
         }).start();
     }
 
-    private void sendLine(String text) throws Exception {
-        writer.write(text);
+    private void sendRaw(String s) throws Exception {
+        writer.write(s);
         writer.write("\n");
         writer.flush();
     }
 
-    private void close() {
+    public void close() {
         try {
             if (socket != null) socket.close();
         } catch (Exception ignored) {}
