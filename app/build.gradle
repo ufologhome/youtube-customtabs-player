@@ -3,25 +3,22 @@ plugins {
 }
 
 android {
-    namespace "com.example.youtubeplayer"
-    compileSdk 34  // <-- Обновлено на 34
+    namespace 'com.example.youtuberelay'
+    compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.youtubeplayer"
+        applicationId "com.example.youtuberelay"
         minSdk 24
-        targetSdk 34   // <-- Обновлено на 34
+        targetSdk 34
         versionCode 1
         versionName "1.0"
     }
 
     buildTypes {
-        release {
-            minifyEnabled false
-        }
+        release { minifyEnabled false }
     }
 }
 
 dependencies {
-    implementation "androidx.browser:browser:1.7.0"
-    implementation "androidx.appcompat:appcompat:1.6.1"
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 }
