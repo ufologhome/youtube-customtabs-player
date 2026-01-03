@@ -1,31 +1,43 @@
-package com.example.youtuberelay;
+package com.example.chat;
 
 import android.os.Bundle;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String VIDEO_ID = "3JIPDZqkeSo";
-    private static final String RELAY_IP = "192.168.0.150"; // IP твоего ПК с Python relay
-    private static final int RELAY_PORT = 8881;
+    TextView chat;
+    EditText input;
+    ChatClient client;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
         setContentView(R.layout.activity_main);
 
-        WebView webView = findViewById(R.id.webview);
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
+        chat = findViewById(R.id.chat);
+        input = findViewById(R.id.input);
+        Button send = findViewById(R.id.send);
 
-        webView.setWebViewClient(new WebViewClient());
+        new Thread(() -> {
+            try {
+                client = new ChatClient("192.168.0.150"); // IP сервера
+                while (true) {
+                    String msg = client.read();
+                    runOnUiThread(() ->
+                        chat.append("\nFriend: " + msg)
+                    );
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
 
-        String url = "http://" + RELAY_IP + ":" + RELAY_PORT + "/https://www.youtube.com/embed/" + VIDEO_ID + "?autoplay=1&playsinline=1";
-        webView.loadUrl(url);
+        send.setOnClickListener(v -> {
+            String text = input.getText().toString();
+            client.send(text);
+            chat.append("\nMe: " + text);
+            input.setText("");
+        });
     }
 }
