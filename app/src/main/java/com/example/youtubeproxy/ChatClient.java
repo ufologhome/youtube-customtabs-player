@@ -4,36 +4,60 @@ import java.io.*;
 import java.net.Socket;
 
 public class ChatClient {
-
     private Socket socket;
     private BufferedReader reader;
     private BufferedWriter writer;
 
-    public ChatClient(String host, int port, String serverKey, String username) throws IOException {
-        socket = new Socket(host, port);
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+    private String serverIp;
+    private int serverPort;
+    private String key;
+    private String username;
 
-        // Отправка ключа при подключении
-        writer.write("KEY:" + serverKey + "\n");
+    public ChatClient(String serverIp, int serverPort, String key, String username) throws IOException {
+        this.serverIp = serverIp;
+        this.serverPort = serverPort;
+        this.key = key;
+        this.username = username;
+
+        connect();
+    }
+
+    private void connect() throws IOException {
+        socket = new Socket(serverIp, serverPort);
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+
+        // Протокол: сначала ключ
+        readLine(); // "Enter key:"
+        sendLine(key);
+
+        String response = readLine();
+        if (!response.contains("Key accepted")) {
+            throw new IOException("Invalid key: " + response);
+        }
+
+        // Потом никнейм
+        sendLine(username);
+        readLine(); // "Connected to chat..."
+    }
+
+    // Отправка строки с переносом
+    public void send(String msg) throws IOException {
+        sendLine(msg);
+    }
+
+    private void sendLine(String msg) throws IOException {
+        writer.write(msg + "\n");
         writer.flush();
     }
 
-    public void send(String message) throws IOException {
-        if (socket == null || socket.isClosed())
-            throw new IOException("Socket is closed");
-
-        writer.write(message + "\n");
-        writer.flush();
-    }
-
+    // Чтение строки с сервера
     public String read() throws IOException {
         return reader.readLine();
     }
 
-    public void close() {
-        try { if (reader != null) reader.close(); } catch (IOException ignored) {}
-        try { if (writer != null) writer.close(); } catch (IOException ignored) {}
-        try { if (socket != null) socket.close(); } catch (IOException ignored) {}
+    // Закрыть соединение
+    public void close() throws IOException {
+        socket.close();
     }
 }
