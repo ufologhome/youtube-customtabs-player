@@ -15,7 +15,7 @@ public class MainActivity extends AppCompatActivity {
     private ChatClient client;
     private volatile boolean connected = false;
 
-    private final String username = "Julyet"; // Никнейм пользователя
+    private final String username = "UFO"; // Никнейм пользователя
     private final String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // Ключ для сервера
 
     @Override
