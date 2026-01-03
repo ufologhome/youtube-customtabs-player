@@ -1,8 +1,9 @@
 package com.example.chat;
 
-import android.util.Log;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
 
 public class ChatClient {
@@ -11,52 +12,83 @@ public class ChatClient {
     private BufferedReader reader;
     private BufferedWriter writer;
 
-    public ChatClient(String host, int port, String key, String username) throws IOException {
-        socket = new Socket(host, port);
-
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-
-        // Отправляем ключ
-        sendRaw(key);
-
-        String serverResponse = readRaw(); // "Key accepted" или "Invalid key"
-        Log.d("ChatClient", "Server response: " + serverResponse);
-
-        // Отправляем никнейм
-        sendRaw(username);
+    public interface MessageListener {
+        void onMessage(String msg);
+        void onError(String err);
     }
 
-    // Чтение одной строки
-    public String read() {
-        try {
-            return reader.readLine();
-        } catch (IOException e) {
-            Log.e("ChatClient", "Read error", e);
-            return null;
-        }
+    public ChatClient(
+            String host,
+            int port,
+            String key,
+            String username,
+            MessageListener listener
+    ) {
+        new Thread(() -> {
+            try {
+                socket = new Socket(host, port);
+                reader = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream())
+                );
+                writer = new BufferedWriter(
+                        new OutputStreamWriter(socket.getOutputStream())
+                );
+
+                // ---- SERVER: "Enter key:"
+                reader.readLine();
+
+                // SEND KEY
+                sendLine(key);
+
+                // ---- SERVER RESPONSE
+                String response = reader.readLine();
+                if (response == null || response.contains("Invalid")) {
+                    listener.onError("Invalid key");
+                    close();
+                    return;
+                }
+
+                // ---- SERVER: "Send your username:"
+                reader.readLine();
+
+                // SEND USERNAME
+                sendLine(username);
+
+                // ---- SERVER: "Connected to chat"
+                reader.readLine();
+
+                // READ CHAT
+                while (true) {
+                    String line = reader.readLine();
+                    if (line == null) break;
+                    listener.onMessage(line);
+                }
+
+            } catch (Exception e) {
+                listener.onError(e.toString());
+            } finally {
+                close();
+            }
+        }).start();
     }
 
-    // Отправка сообщения с добавлением \n
-    public void send(String msg) {
-        sendRaw(msg);
+    public void sendMessage(String msg) {
+        new Thread(() -> {
+            try {
+                sendLine(msg);
+            } catch (Exception ignored) {}
+        }).start();
     }
 
-    private void sendRaw(String msg) {
-        try {
-            writer.write(msg + "\n");
-            writer.flush();
-        } catch (IOException e) {
-            Log.e("ChatClient", "Send error", e);
-        }
+    private void sendLine(String text) throws Exception {
+        writer.write(text);
+        writer.write("\n");
+        writer.flush();
     }
 
-    // Закрытие соединения
-    public void close() {
+    private void close() {
         try {
             if (socket != null) socket.close();
-        } catch (IOException e) {
-            Log.e("ChatClient", "Close error", e);
-        }
+        } catch (Exception ignored) {}
     }
 }
