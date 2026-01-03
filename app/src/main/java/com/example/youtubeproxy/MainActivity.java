@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
     String serverIp = "192.168.0.150";
     int serverPort = 9009;
     String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash";
-    String username = "Julyet";
+    String username = "UFO";
 
     @Override
     protected void onCreate(Bundle b) {
