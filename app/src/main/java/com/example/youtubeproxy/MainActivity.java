@@ -7,20 +7,22 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView chat;
-    private EditText input;
-    private Button send;
-    private ScrollView scrollView;
+    TextView chat;
+    EditText input;
+    Button send;
+    ScrollView scrollView;
 
-    private ChatClient client;
-    private volatile boolean connected = false;
+    ChatClient client;
+    volatile boolean connected = false;
 
-    private final String username = "UFO"; // Никнейм пользователя
-    private final String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // Ключ для сервера
+    String username = "Julyet"; // Ваш никнейм
+    String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // Ключ для сервера
+    String serverIp = "192.168.0.150"; // IP сервера
+    int serverPort = 9009; // Порт сервера
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
         setContentView(R.layout.activity_main);
 
         chat = findViewById(R.id.chat);
@@ -28,13 +30,13 @@ public class MainActivity extends AppCompatActivity {
         send = findViewById(R.id.send);
         scrollView = findViewById(R.id.scrollView);
 
-        send.setEnabled(false); // ❗ пока не подключились
+        send.setEnabled(false);
 
-        // Подключение к серверу в отдельном потоке
+        // Подключение к серверу
         new Thread(() -> {
             try {
                 Log.d("CHAT", "Connecting...");
-                client = new ChatClient("192.168.0.150", serverKey, username); // IP, ключ, ник
+                client = new ChatClient(serverIp, serverPort, serverKey, username);
                 connected = true;
 
                 runOnUiThread(() -> {
@@ -42,11 +44,17 @@ public class MainActivity extends AppCompatActivity {
                     send.setEnabled(true);
                 });
 
-                // Чтение сообщений от сервера
                 String msg;
                 while ((msg = client.read()) != null) {
-                    final String message = formatMessage(msg);
-                    runOnUiThread(() -> appendChat(message));
+                    String[] parts = msg.split(":", 2);
+                    String sender = parts.length > 1 ? parts[0] : "Friend";
+                    String text = parts.length > 1 ? parts[1] : msg;
+
+                    String finalSender = sender;
+                    String finalText = text;
+                    runOnUiThread(() ->
+                        appendChat(finalSender + ": " + finalText)
+                    );
                 }
 
             } catch (Exception e) {
@@ -56,40 +64,26 @@ public class MainActivity extends AppCompatActivity {
         }).start();
 
         // Отправка сообщений
-        send.setOnClickListener(v -> sendMessage());
-    }
+        send.setOnClickListener(v -> {
+            if (!connected || client == null) return;
 
-    // Метод для отправки сообщения
-    private void sendMessage() {
-        if (!connected || client == null) return;
+            String text = input.getText().toString().trim();
+            if (text.isEmpty()) return;
 
-        String text = input.getText().toString().trim();
-        if (text.isEmpty()) return;
+            try {
+                client.send(username + ":" + text);
+                appendChat(username + ": " + text);
+            } catch (Exception e) {
+                appendChat("❌ Failed to send message: " + e.getMessage());
+                e.printStackTrace();
+            }
 
-        try {
-            client.send(username + ":" + text); // Отправка с никнеймом
-            appendChat(username + ": " + text); // Показываем локально
-        } catch (Exception e) {
-            appendChat("❌ Failed to send message: " + e.getMessage());
-        }
-
-        input.setText("");
-    }
-
-    // Форматирование полученного сообщения
-    private String formatMessage(String raw) {
-        if (raw.contains(":")) {
-            String[] parts = raw.split(":", 2);
-            String sender = parts[0];
-            String message = parts[1];
-            return sender + ": " + message;
-        } else {
-            return "Friend: " + raw;
-        }
+            input.setText("");
+        });
     }
 
     // Добавление текста в chat с прокруткой вниз
-    private void appendChat(String text) {
+    void appendChat(String text) {
         chat.append(text + "\n");
         scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
     }
