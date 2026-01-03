@@ -6,7 +6,8 @@
         android:allowBackup="true"
         android:label="Chat"
         android:theme="@style/Theme.AppCompat.Light"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <activity
             android:name=".MainActivity"
