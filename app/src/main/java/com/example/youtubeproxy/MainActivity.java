@@ -1,7 +1,6 @@
-package com.example.chat;
+package com.example.youtubeproxy;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -10,72 +9,59 @@ public class MainActivity extends AppCompatActivity {
     TextView chat;
     EditText input;
     Button send;
-    ScrollView scrollView;
+    ScrollView scroll;
 
     ChatClient client;
-    volatile boolean connected = false;
 
-    String username = "Julyet"; // Никнейм
-    String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // Ключ
-    String serverIp = "192.168.0.150"; // IP сервера
-    int serverPort = 9009; // Порт сервера
+    String serverIp = "192.168.0.150";
+    int serverPort = 9009;
+    String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash";
+    String username = "Julyet";
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
         setContentView(R.layout.activity_main);
 
         chat = findViewById(R.id.chat);
         input = findViewById(R.id.input);
         send = findViewById(R.id.send);
-        scrollView = findViewById(R.id.scrollView);
+        scroll = findViewById(R.id.scrollView);
 
         send.setEnabled(false);
 
-        // Поток подключения
-        new Thread(() -> {
-            try {
-                Log.d("CHAT", "Connecting...");
-                client = new ChatClient(serverIp, serverPort, serverKey, username);
-                connected = true;
+        client = new ChatClient(
+                serverIp,
+                serverPort,
+                serverKey,
+                username,
+                new ChatClient.Listener() {
+                    @Override
+                    public void onMessage(String msg) {
+                        runOnUiThread(() -> append(msg));
+                    }
 
-                runOnUiThread(() -> {
-                    appendChat("✅ Connected as " + username);
-                    send.setEnabled(true);
-                });
-
-                String msg;
-                while ((msg = client.read()) != null) {
-                    String[] parts = msg.split(":", 2);
-                    String sender = parts.length > 1 ? parts[0] : "Friend";
-                    String text = parts.length > 1 ? parts[1] : msg;
-
-                    String finalSender = sender;
-                    String finalText = text;
-                    runOnUiThread(() -> appendChat(finalSender + ": " + finalText));
+                    @Override
+                    public void onError(String err) {
+                        runOnUiThread(() -> append("❌ " + err));
+                    }
                 }
-
-            } catch (Exception e) {
-                Log.e("CHAT", "Connection error", e);
-                runOnUiThread(() -> appendChat("❌ Connection failed: " + e.getMessage()));
-            }
-        }).start();
+        );
 
         send.setOnClickListener(v -> {
-            if (!connected || client == null) return;
-
             String text = input.getText().toString().trim();
             if (text.isEmpty()) return;
 
-            client.send(username + ":" + text);
-            appendChat(username + ": " + text); // показываем локально
+            client.send(text);
             input.setText("");
         });
+
+        send.setEnabled(true);
     }
 
-    void appendChat(String text) {
-        chat.append(text + "\n");
-        scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
+    void append(String s) {
+        chat.append(s + "\n");
+        scroll.post(() -> scroll.fullScroll(ScrollView.FOCUS_DOWN));
     }
 
     @Override
