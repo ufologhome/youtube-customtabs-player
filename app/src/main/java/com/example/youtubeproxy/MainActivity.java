@@ -23,12 +23,13 @@ public class MainActivity extends AppCompatActivity {
         input = findViewById(R.id.input);
         send = findViewById(R.id.send);
 
-        send.setEnabled(false); // ❗ пока не подключились
+        send.setEnabled(false);
 
+        // 🔹 Подключение к серверу
         new Thread(() -> {
             try {
                 Log.d("CHAT", "Connecting...");
-                client = new ChatClient("192.168.0.150"); // IP ПК
+                client = new ChatClient("192.168.0.150", 9009);
                 connected = true;
 
                 runOnUiThread(() -> {
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
                         chat.append("\nFriend: " + msg)
                     );
                 }
+
             } catch (Exception e) {
                 Log.e("CHAT", "Connection error", e);
                 runOnUiThread(() ->
@@ -52,13 +54,25 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
 
+        // 🔹 ОТПРАВКА СООБЩЕНИЯ — ТОЛЬКО В ПОТОКЕ
         send.setOnClickListener(v -> {
             if (!connected || client == null) return;
 
             String text = input.getText().toString();
-            client.send(text);
-            chat.append("\nMe: " + text);
             input.setText("");
+
+            chat.append("\nMe: " + text);
+
+            new Thread(() -> {
+                try {
+                    client.send(text);
+                } catch (Exception e) {
+                    Log.e("CHAT", "Send failed", e);
+                    runOnUiThread(() ->
+                        chat.append("\n❌ Send error")
+                    );
+                }
+            }).start();
         });
     }
 }
