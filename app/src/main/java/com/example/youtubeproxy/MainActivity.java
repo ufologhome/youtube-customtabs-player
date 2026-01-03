@@ -7,18 +7,18 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    TextView chat;
-    EditText input;
-    Button send;
-    ScrollView scrollView;
+    private TextView chat;
+    private EditText input;
+    private Button send;
+    private ScrollView scrollView;
 
-    ChatClient client;
-    volatile boolean connected = false;
+    private ChatClient client;
+    private volatile boolean connected = false;
 
-    String username = "Julyet"; 
-    String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash";
-    String serverIp = "192.168.0.150"; 
-    int serverPort = 9009;
+    private final String username = "Julyet"; // ваш ник
+    private final String serverKey = "efwefefwel7yywfeeyfefofjojooobjhvdgdgasdash"; // ключ
+    private final String serverIp = "192.168.0.150"; // IP сервера
+    private final int serverPort = 9009; // порт сервера
 
     @Override
     protected void onCreate(Bundle b) {
@@ -30,11 +30,12 @@ public class MainActivity extends AppCompatActivity {
         send = findViewById(R.id.send);
         scrollView = findViewById(R.id.scrollView);
 
-        send.setEnabled(false);
+        send.setEnabled(false); // пока не подключились
 
-        // Подключение в отдельном потоке
+        // Подключение к серверу в отдельном потоке
         new Thread(() -> {
             try {
+                Log.d("CHAT", "Connecting...");
                 client = new ChatClient(serverIp, serverPort, serverKey, username);
                 connected = true;
 
@@ -45,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
 
                 String msg;
                 while ((msg = client.read()) != null) {
-                    runOnUiThread(() -> appendChat(msg));
+                    final String message = msg.trim();
+                    if (!message.isEmpty()) {
+                        runOnUiThread(() -> appendChat(message));
+                    }
                 }
 
             } catch (Exception e) {
@@ -61,22 +65,32 @@ public class MainActivity extends AppCompatActivity {
             String text = input.getText().toString().trim();
             if (text.isEmpty()) return;
 
-            new Thread(() -> {
-                try {
-                    client.send(username + ":" + text);
-                    runOnUiThread(() -> appendChat(username + ": " + text));
-                } catch (Exception e) {
-                    runOnUiThread(() -> appendChat("❌ Failed to send message: " + e.getMessage()));
-                    e.printStackTrace();
-                }
-            }).start();
+            try {
+                // Отправляем с ником
+                client.send(username + ": " + text);
+            } catch (Exception e) {
+                appendChat("❌ Failed to send message: " + e.getMessage());
+                e.printStackTrace();
+                return;
+            }
 
+            // Локально отображаем только один раз
+            appendChat(username + ": " + text);
             input.setText("");
         });
     }
 
-    void appendChat(String text) {
+    // Добавление текста в chat с прокруткой вниз
+    private void appendChat(String text) {
         chat.append(text + "\n");
         scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            if (client != null) client.close();
+        } catch (Exception ignored) {}
     }
 }
